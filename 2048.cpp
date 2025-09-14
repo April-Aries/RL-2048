@@ -167,8 +167,8 @@ public:
 
 	/**
 	 * add a new random tile on board, or do nothing if the board is full
-	 * 2-tile: 90%
-	 * 4-tile: 10%
+	 * 2-tile: 80%
+	 * 4-tile: 20%
 	 */
 	void popup() {
 		int space[16], num = 0;
@@ -177,7 +177,7 @@ public:
 				space[num++] = i;
 			}
 		if (num)
-			set(space[rand() % num], rand() % 10 ? 1 : 2);
+			set(space[rand() % num], rand() % 5 ? 1 : 2);
 	}
 
 	/**

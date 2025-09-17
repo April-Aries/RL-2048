@@ -26,6 +26,7 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
+#include <stdint.h>
 
 /**
  * output streams
@@ -464,7 +465,13 @@ public:
 	 */
 	virtual float estimate(const board& b) const {
 		// TODO
-
+		float value = 0;
+		for (int i = 0; i < iso_last; i++)
+		{
+		    size_t index = indexof(isomorphic[i], b);
+		    value += operator[](index);
+		}
+		return value;
 	}
 
 	/**
@@ -472,7 +479,14 @@ public:
 	 */
 	virtual float update(const board& b, float u) {
 		// TODO
-
+		float u_split = u / iso_last;  // split update among patterns
+		float value = 0;
+		for (int i = 0; i < iso_last; i++) {
+		    size_t index = indexof(isomorphic[i], b);
+		    operator[](index) += u_split;
+		    value += operator[](index);
+		}
+		return value;
 	}
 
 	/**
@@ -509,7 +523,12 @@ public:
 protected:
 
 	size_t indexof(const std::vector<int>& patt, const board& b) const {
-		// TODO
+		// TODO: given a pattern and a current board, return the index of weight table on certain pattern
+		size_t index = 0;
+		for (int i = 0; i < patt.size(); i++) {
+		    index |= (b.at(patt[i]) << (i * 4));
+		}
+		return index;
 	}
 
 	std::string nameof(const std::vector<int>& patt) const {
@@ -681,6 +700,7 @@ public:
 		for (state* move = after; move != after + 4; move++) {
 			if (move->assign(b)) {
 				// TODO
+				move->set_value(estimate(move->after_state()));
 
 				if (move->value() > best->value())
 					best = move;
@@ -708,7 +728,13 @@ public:
 	 */
 	void update_episode(std::vector<state>& path, float alpha = 0.1) const {
 		// TODO
-
+		float target = 0;
+		for(path.pop_back(); path.size(); path.pop_back())
+		{
+		    state& move = path.back();
+		    float error = target - estimate(move.before_state());
+		    target = move.reward() + update(move.before_state(), alpha * error);
+		}
 	}
 
 	/**
@@ -827,16 +853,20 @@ int main(int argc, const char* argv[]) {
 	learning tdl;
 
 	// set the learning parameters
-	float alpha = 0.1;
-	size_t total = 100000;
+	float alpha = 0.1; // <-- Exp
+	size_t total = 200000; // <-- Exp
+
 	unsigned seed;
 	__asm__ __volatile__ ("rdtsc" : "=a" (seed));
+
 	info << "alpha = " << alpha << std::endl;
 	info << "total = " << total << std::endl;
 	info << "seed = " << seed << std::endl;
 	std::srand(seed);
 
-	// initialize the features
+	// initialize the features <-- Exp
+	// tdl.add_feature(new pattern({ 0, 1, 2, 3 }));
+	// tdl.add_feature(new pattern({ 4, 5, 6, 7 }));
 	tdl.add_feature(new pattern({ 0, 1, 2, 3, 4, 5 }));
 	tdl.add_feature(new pattern({ 4, 5, 6, 7, 8, 9 }));
 	tdl.add_feature(new pattern({ 0, 1, 2, 4, 5, 6 }));
@@ -878,7 +908,7 @@ int main(int argc, const char* argv[]) {
 	}
 
 	// store the model into file
-	tdl.save("");
+	tdl.save("weights.bin");
 
 	return 0;
 }
